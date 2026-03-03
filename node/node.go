@@ -26,13 +26,13 @@ type Response struct {
 }
 
 type Node struct {
-	config   config.Config
+	config   *config.Config
 	cache    *cache.Cache
 	listener net.Listener
 }
 
-func New(cfg config.Config, storage storage.Storage, evictionPolicy storage.EvictionPolicy) *Node {
-	c := cache.New(storage, evictionPolicy, cfg.CacheSize)
+func New(cfg *config.Config, storage storage.Storage, evictionPolicy storage.EvictionPolicy) *Node {
+	c := cache.New(storage, evictionPolicy, cfg.Cache.Size)
 	return &Node{
 		config: cfg,
 		cache:  c,
@@ -40,7 +40,7 @@ func New(cfg config.Config, storage storage.Storage, evictionPolicy storage.Evic
 }
 
 func (n *Node) Start() error {
-	addr := fmt.Sprintf("%s:%d", n.config.Addr, n.config.Port)
+	addr := n.config.Addr()
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		return err
