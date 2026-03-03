@@ -1,6 +1,8 @@
 package cache
 
 import (
+	"encoding/json"
+
 	"github.com/priyanshu360/cachemesh/storage"
 	"time"
 )
@@ -19,12 +21,16 @@ func New(storage storage.Storage, evictionPolicy storage.EvictionPolicy, size in
 	}
 }
 
-func (c *Cache) Get(key string) (any, error) {
+func (c *Cache) Get(key string) ([]byte, error) {
 	return c.storage.Get(key)
 }
 
 func (c *Cache) Set(key string, value any, ttl time.Duration) error {
-	return c.storage.Set(key, value, ttl)
+	data, err := json.Marshal(value)
+	if err != nil {
+		return err
+	}
+	return c.storage.Set(key, data, ttl)
 }
 
 func (c *Cache) Delete(key string) bool {
@@ -37,4 +43,15 @@ func (c *Cache) Exist(key string) bool {
 
 func (c *Cache) Stat() storage.Stat {
 	return c.storage.Stat()
+}
+
+func (c *Cache) GetAs(key string, dest any) error {
+	data, err := c.storage.Get(key)
+	if err != nil {
+		return err
+	}
+	if data == nil {
+		return nil
+	}
+	return json.Unmarshal(data, dest)
 }

@@ -12,15 +12,15 @@ import (
 )
 
 type Request struct {
-	Type  string `json:"type"` // get, set, delete, exist, stat
-	Key   string `json:"key"`
-	Value any    `json:"value"`
-	TTL   int64  `json:"ttl"` // milliseconds
+	Type  string          `json:"type"` // get, set, delete, exist, stat
+	Key   string          `json:"key"`
+	Value json.RawMessage `json:"value"`
+	TTL   int64           `json:"ttl"` // milliseconds
 }
 
 type Response struct {
-	Value any  `json:"value"`
-	Flag  bool `json:"flag"`
+	Value json.RawMessage `json:"value"`
+	Flag  bool            `json:"flag"`
 	Stat  storage.Stat
 	Error string `json:"error,omitempty"`
 }
@@ -87,9 +87,10 @@ func (n *Node) processRequest(conn net.Conn, req Request) {
 	switch req.Type {
 	case "get":
 		val, err := n.cache.Get(req.Key)
-		resp.Value = val
 		if err != nil {
 			resp.Error = err.Error()
+		} else if val != nil {
+			resp.Value = val
 		}
 	case "set":
 		ttl := time.Duration(req.TTL) * time.Millisecond
@@ -104,7 +105,7 @@ func (n *Node) processRequest(conn net.Conn, req Request) {
 	case "stat":
 		resp.Stat = n.cache.Stat()
 	case "ping":
-		resp.Value = "PONG"
+		resp.Value = json.RawMessage(`"PONG"`)
 	}
 
 	n.sendResponse(conn, resp)
@@ -144,8 +145,12 @@ func (c *NodeClient) Get(key string) (any, error) {
 }
 
 func (c *NodeClient) Set(key string, value any, ttl time.Duration) error {
-	req := Request{Type: "set", Key: key, Value: value, TTL: int64(ttl.Milliseconds())}
-	_, err := c.sendRequest(req)
+	data, err := json.Marshal(value)
+	if err != nil {
+		return err
+	}
+	req := Request{Type: "set", Key: key, Value: data, TTL: int64(ttl.Milliseconds())}
+	_, err = c.sendRequest(req)
 	return err
 }
 

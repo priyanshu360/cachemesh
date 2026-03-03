@@ -20,8 +20,8 @@ type EvictionPolicy interface {
 }
 
 type Storage interface {
-	Get(key string) (value any, err error)
-	Set(key string, value any, ttl time.Duration) error
+	Get(key string) (value []byte, err error)
+	Set(key string, value []byte, ttl time.Duration) error
 	Delete(key string) (flag bool)
 	Exist(key string) (flag bool)
 	Stat() Stat
@@ -30,7 +30,7 @@ type Storage interface {
 type LRUCache struct {
 	capacity int
 	mu       sync.RWMutex
-	data     map[string]any
+	data     map[string][]byte
 	ttl      map[string]time.Time
 	order    *list.List
 	items    map[string]*list.Element
@@ -40,7 +40,7 @@ type LRUCache struct {
 func NewLRU(capacity int) *LRUCache {
 	return &LRUCache{
 		capacity: capacity,
-		data:     make(map[string]any),
+		data:     make(map[string][]byte),
 		ttl:      make(map[string]time.Time),
 		order:    list.New(),
 		items:    make(map[string]*list.Element),
@@ -48,7 +48,7 @@ func NewLRU(capacity int) *LRUCache {
 	}
 }
 
-func (c *LRUCache) Get(key string) (any, error) {
+func (c *LRUCache) Get(key string) ([]byte, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -69,7 +69,7 @@ func (c *LRUCache) Get(key string) (any, error) {
 	return nil, nil
 }
 
-func (c *LRUCache) Set(key string, value any, ttl time.Duration) error {
+func (c *LRUCache) Set(key string, value []byte, ttl time.Duration) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -163,7 +163,7 @@ func (c *LRUCache) Evict() (string, bool) {
 func (c *LRUCache) Reset() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.data = make(map[string]any)
+	c.data = make(map[string][]byte)
 	c.ttl = make(map[string]time.Time)
 	c.order = list.New()
 	c.items = make(map[string]*list.Element)
@@ -173,7 +173,7 @@ func (c *LRUCache) Reset() {
 type LFUCache struct {
 	capacity int
 	mu       sync.RWMutex
-	data     map[string]any
+	data     map[string][]byte
 	ttl      map[string]time.Time
 	freq     map[string]int
 	minFreq  int
@@ -183,7 +183,7 @@ type LFUCache struct {
 func NewLFU(capacity int) *LFUCache {
 	return &LFUCache{
 		capacity: capacity,
-		data:     make(map[string]any),
+		data:     make(map[string][]byte),
 		ttl:      make(map[string]time.Time),
 		freq:     make(map[string]int),
 		minFreq:  0,
@@ -191,7 +191,7 @@ func NewLFU(capacity int) *LFUCache {
 	}
 }
 
-func (c *LFUCache) Get(key string) (any, error) {
+func (c *LFUCache) Get(key string) ([]byte, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -211,7 +211,7 @@ func (c *LFUCache) Get(key string) (any, error) {
 	return nil, nil
 }
 
-func (c *LFUCache) Set(key string, value any, ttl time.Duration) error {
+func (c *LFUCache) Set(key string, value []byte, ttl time.Duration) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -327,7 +327,7 @@ func (c *LFUCache) Evict() (string, bool) {
 func (c *LFUCache) Reset() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.data = make(map[string]any)
+	c.data = make(map[string][]byte)
 	c.ttl = make(map[string]time.Time)
 	c.freq = make(map[string]int)
 	c.minFreq = 0

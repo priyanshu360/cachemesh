@@ -9,6 +9,11 @@ import (
 	"github.com/priyanshu360/cachemesh/client"
 )
 
+type User struct {
+	Name  string `json:"name"`
+	Email string `json:"email"`
+}
+
 func main() {
 	c := client.New("localhost:8080")
 	defer c.Close()
@@ -20,17 +25,19 @@ func main() {
 	}
 	fmt.Println("Ping: OK")
 
-	err := c.Set(ctx, "user:1", map[string]string{"name": "John", "email": "john@example.com"}, time.Hour)
+	user := User{Name: "John", Email: "john@example.com"}
+	err := c.Set(ctx, "user:1", user, time.Hour)
 	if err != nil {
 		log.Fatalf("Failed to set: %v", err)
 	}
 	fmt.Println("Set: OK")
 
-	val, err := c.Get(ctx, "user:1")
+	var retrieved User
+	err = c.GetTo(ctx, "user:1", &retrieved)
 	if err != nil {
 		log.Fatalf("Failed to get: %v", err)
 	}
-	fmt.Printf("Get: %v\n", val)
+	fmt.Printf("Get: %+v\n", retrieved)
 
 	exists, err := c.Exist(ctx, "user:1")
 	if err != nil {

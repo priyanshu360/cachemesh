@@ -70,16 +70,16 @@ func (c *Client) getNode() (*nodeClient, error) {
 }
 
 type Request struct {
-	Type  string `json:"type"`
-	Key   string `json:"key"`
-	Value any    `json:"value"`
-	TTL   int64  `json:"ttl"`
+	Type  string      `json:"type"`
+	Key   string      `json:"key"`
+	Value interface{} `json:"value"`
+	TTL   int64       `json:"ttl"`
 }
 
 type Response struct {
-	Value any    `json:"value"`
-	Flag  bool   `json:"flag"`
-	Error string `json:"error,omitempty"`
+	Value json.RawMessage `json:"value"`
+	Flag  bool            `json:"flag"`
+	Error string          `json:"error,omitempty"`
 }
 
 func (c *Client) send(req Request) (*Response, error) {
@@ -118,17 +118,40 @@ func (c *Client) Get(ctx context.Context, key string) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	return resp.Value, nil
+	if len(resp.Value) == 0 {
+		return nil, nil
+	}
+	var result any
+	if err := json.Unmarshal(resp.Value, &result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (c *Client) GetTo(ctx context.Context, key string, dest any) error {
+	req := Request{Type: "get", Key: key}
+	resp, err := c.send(req)
+	if err != nil {
+		return err
+	}
+	if len(resp.Value) == 0 {
+		return nil
+	}
+	return json.Unmarshal(resp.Value, dest)
 }
 
 func (c *Client) Set(ctx context.Context, key string, value any, ttl time.Duration) error {
+	data, err := json.Marshal(value)
+	if err != nil {
+		return err
+	}
 	req := Request{
 		Type:  "set",
 		Key:   key,
-		Value: value,
+		Value: data,
 		TTL:   int64(ttl.Milliseconds()),
 	}
-	_, err := c.send(req)
+	_, err = c.send(req)
 	return err
 }
 
@@ -191,6 +214,12 @@ func (c *ClusterClient) Get(ctx context.Context, key string) (any, error) {
 	addr := c.ring.GetNode(key)
 	client := c.nodes[addr]
 	return client.Get(ctx, key)
+}
+
+func (c *ClusterClient) GetTo(ctx context.Context, key string, dest any) error {
+	addr := c.ring.GetNode(key)
+	client := c.nodes[addr]
+	return client.GetTo(ctx, key, dest)
 }
 
 func (c *ClusterClient) Set(ctx context.Context, key string, value any, ttl time.Duration) error {
