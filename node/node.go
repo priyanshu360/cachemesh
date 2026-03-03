@@ -103,6 +103,8 @@ func (n *Node) processRequest(conn net.Conn, req Request) {
 		resp.Flag = n.cache.Exist(req.Key)
 	case "stat":
 		resp.Stat = n.cache.Stat()
+	case "ping":
+		resp.Value = "PONG"
 	}
 
 	n.sendResponse(conn, resp)

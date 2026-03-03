@@ -11,15 +11,16 @@ help:
 	@echo "  clean        - Clean build artifacts"
 	@echo "  docker-build - Build Docker image"
 	@echo "  docker-run   - Run Docker container"
+	@echo "  client-test  - Test the client library"
 
 build:
-	go build -o $(BINARY_NAME) .
+	go build -o $(BINARY_NAME) ./cmd/server
 
 run:
-	go run . -config=config.yaml
+	go run ./cmd/server -config=config.yaml
 
 run-port:
-	go run . -port=$(PORT)
+	go run ./cmd/server -port=$(PORT)
 
 test:
 	go test -v ./...
@@ -36,3 +37,6 @@ docker-run:
 
 docker-buildx:
 	docker buildx build --platform linux/amd64,linux/arm64 -t $(BINARY_NAME):latest .
+
+client-test:
+	go run ./examples/client/main.go
